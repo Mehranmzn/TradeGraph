@@ -8,6 +8,7 @@ from loguru import logger
 from .base_agent import BaseAgent
 from ..models.financial_data import NewsArticle, SentimentType
 from ..config.settings import settings
+from ..utils.helpers import generate_summary
 
 
 class NewsReaderAgent(BaseAgent):
@@ -104,12 +105,14 @@ class NewsReaderAgent(BaseAgent):
                                         link = f"https://finance.yahoo.com{link}"
 
                                     # Extract article content
-                                    content = await self._extract_article_content(link)
+                                    raw_content = await self._extract_article_content(link)
+                                    content = (raw_content or "")[:1000]  # Limit content length
 
                                     article = NewsArticle(
                                         title=title,
                                         url=link,
-                                        content=content[:1000],  # Limit content length
+                                        content=content,
+                                        summary=generate_summary(raw_content or title),
                                         source="yahoo-finance",
                                         published_at=datetime.now(),
                                         symbols=[symbol]
@@ -151,12 +154,14 @@ class NewsReaderAgent(BaseAgent):
                                 if link and not link.startswith('http'):
                                     link = f"https://www.bloomberg.com{link}"
 
-                                content = await self._extract_article_content(link)
+                                raw_content = await self._extract_article_content(link)
+                                content = (raw_content or "")[:1000]
 
                                 article = NewsArticle(
                                     title=title,
                                     url=link,
-                                    content=content[:1000],
+                                    content=content,
+                                    summary=generate_summary(raw_content or title),
                                     source="bloomberg",
                                     published_at=datetime.now(),
                                     symbols=symbols
@@ -195,12 +200,14 @@ class NewsReaderAgent(BaseAgent):
                                     if link and not link.startswith('http'):
                                         link = f"https://www.reuters.com{link}"
 
-                                    content = await self._extract_article_content(link)
+                                    raw_content = await self._extract_article_content(link)
+                                    content = (raw_content or "")[:1000]
 
                                     article = NewsArticle(
                                         title=title,
                                         url=link,
-                                        content=content[:1000],
+                                        content=content,
+                                        summary=generate_summary(raw_content or title),
                                         source="reuters",
                                         published_at=datetime.now(),
                                         symbols=[symbol]
@@ -268,6 +275,9 @@ class NewsReaderAgent(BaseAgent):
                 # Add impact score
                 impact_score = await self._calculate_impact_score(article, symbols)
                 article.impact_score = impact_score
+
+                if not article.summary:
+                    article.summary = generate_summary(article.content or article.title)
 
                 analyzed_articles.append(article)
 

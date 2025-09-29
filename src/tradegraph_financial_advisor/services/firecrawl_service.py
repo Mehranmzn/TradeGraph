@@ -8,6 +8,7 @@ from dateutil import parser as date_parser
 
 from ..config.settings import settings
 from ..models.financial_data import NewsArticle
+from ..utils.helpers import generate_summary
 
 
 class FirecrawlService:
@@ -421,6 +422,7 @@ class FirecrawlService:
                             title=article_info['title'],
                             url=article_info['url'],
                             content=article_info['content'],
+                            summary=generate_summary(article_info['content'] or article_info['title']),
                             source=article_info['source'],
                             published_at=article_info['published_at'],
                             symbols=article_info['symbols']

@@ -3,6 +3,7 @@ from typing import Any, Dict, List, Optional, Callable
 from datetime import datetime, timedelta
 import json
 import os
+import re
 from loguru import logger
 
 
@@ -39,6 +40,34 @@ def format_currency(amount: float, decimals: int = 2) -> str:
 def format_percentage(value: float, decimals: int = 1) -> str:
     """Format percentage with proper symbol."""
     return f"{value * 100:.{decimals}f}%"
+
+
+def generate_summary(text: str, max_sentences: int = 2, max_length: int = 320) -> str:
+    """Create a concise summary using the leading sentences of the content."""
+    if not text:
+        return ""
+
+    normalized = re.sub(r"\s+", " ", text).strip()
+    if not normalized:
+        return ""
+
+    sentences = re.split(r"(?<=[.!?])\s+", normalized)
+    summary = " ".join(sentences[:max_sentences]).strip()
+
+    if not summary:
+        summary = normalized[:max_length].strip()
+        if len(normalized) > max_length:
+            summary = summary.rstrip(" ,;:-") + "..."
+        return summary
+
+    if len(summary) > max_length:
+        truncated = summary[:max_length].rstrip()
+        last_space = truncated.rfind(" ")
+        if last_space > 0:
+            truncated = truncated[:last_space]
+        summary = truncated.rstrip(" ,;:-") + "..."
+
+    return summary
 
 
 def calculate_portfolio_metrics(recommendations: List[Dict[str, Any]]) -> Dict[str, float]:

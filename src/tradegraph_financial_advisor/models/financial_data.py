@@ -14,6 +14,7 @@ class NewsArticle(BaseModel):
     title: str
     url: str
     content: str
+    summary: Optional[str] = None
     source: str
     published_at: datetime
     symbols: List[str] = Field(default_factory=list)
