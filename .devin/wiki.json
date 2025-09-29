@@ -1,0 +1,108 @@
+{
+  "repo_notes": [
+    {
+      "content": "TradeGraph Financial Advisor is a sophisticated multi-agent financial analysis system built with LangGraph for workflow orchestration, Firecrawl for web scraping financial news, and MCP (Model Context Protocol) for intelligent trading recommendations. The system processes real-time financial news, SEC filings, and market data to provide comprehensive trading recommendations with confidence scores and portfolio optimization.",
+      "author": "TradeGraph Team"
+    },
+    {
+      "content": "The core architecture implements a three-agent system: NewsReaderAgent handles financial news scraping and sentiment analysis, FinancialAnalysisAgent processes market data and technical indicators, and ReportAnalysisAgent performs AI-powered SEC filing analysis. These agents coordinate through LangGraph workflows to generate unified portfolio recommendations with risk assessment.",
+      "author": "Architecture Team"
+    },
+    {
+      "content": "The system provides multiple access interfaces including CLI tool (tradegraph command), Python API (FinancialAdvisor class), FastAPI REST API with WebSocket support, and React frontend with real-time data visualization. Analysis types include quick (~30s), standard (~2-3min), and comprehensive (~5-10min) with different depth levels.",
+      "author": "Integration Team"
+    },
+    {
+      "content": "Key technology stack includes langgraph>=0.2.0 for multi-agent orchestration, langchain>=0.3.0 for AI integrations, firecrawl-py>=1.0.0 for web scraping, yfinance>=0.2.0 for market data, FastAPI for REST API, and React for frontend. External APIs required: OpenAI for AI analysis, Firecrawl for news scraping, optional Alpha Vantage for enhanced financial data.",
+      "author": "DevOps Team"
+    },
+    {
+      "content": "Project structure: src/tradegraph_financial_advisor/ contains the core Python package (agents/, workflows/, models/, services/, utils/, config/), api/ contains FastAPI backend with routers and WebSocket management, frontend/ contains React web interface, tests/ contains comprehensive test suites, and docs/ contains MkDocs documentation with Material theme.",
+      "author": "Development Team"
+    }
+  ],
+  "pages": [
+    {
+      "title": "Introduction to TradeGraph Financial Advisor",
+      "purpose": "Provide comprehensive overview of the TradeGraph Financial Advisor system, its purpose, core features, multi-agent architecture, and technology stack mapping similar to RAG Web UI introduction"
+    },
+    {
+      "title": "Getting Started",
+      "purpose": "Guide users through installation, environment setup, API key configuration, and basic usage examples for CLI, Python API, and web interface"
+    },
+    {
+      "title": "System Architecture",
+      "purpose": "Document the overall system architecture with detailed technical diagrams showing component interactions and data flow"
+    },
+    {
+      "title": "Backend Architecture",
+      "purpose": "Detail the FastAPI backend implementation, including main.py, routers structure, middleware, authentication, and WebSocket management",
+      "parent": "System Architecture"
+    },
+    {
+      "title": "Frontend Architecture",
+      "purpose": "Document the React frontend structure, component architecture, state management, real-time data handling, and backend integration",
+      "parent": "System Architecture"
+    },
+    {
+      "title": "AI and ML Integration",
+      "purpose": "Explain the AI/ML components including LangGraph workflows, OpenAI integration, multi-agent coordination, and machine learning model integration",
+      "parent": "System Architecture"
+    },
+    {
+      "title": "Configuration and Environment Setup",
+      "purpose": "Document configuration system in config/settings.py, environment variables, API key management, deployment configurations, and system settings"
+    },
+    {
+      "title": "Financial Data Management",
+      "purpose": "Document financial data processing pipeline, including market data collection, technical indicators, data validation, and storage mechanisms"
+    },
+    {
+      "title": "Market Data Processing Pipeline",
+      "purpose": "Detail the market data collection process using yfinance and Alpha Vantage, data transformation, technical indicator calculations, and real-time data handling",
+      "parent": "Financial Data Management"
+    },
+    {
+      "title": "Analysis and Recommendation System",
+      "purpose": "Document the multi-agent analysis system including news analysis, sentiment processing, SEC filing analysis, and recommendation generation"
+    },
+    {
+      "title": "Multi-Agent Financial Analysis",
+      "purpose": "Explain the LangGraph-based multi-agent system, agent coordination, workflow orchestration, and how agents collaborate to generate recommendations",
+      "parent": "Analysis and Recommendation System"
+    },
+    {
+      "title": "Deployment",
+      "purpose": "Document deployment strategies, production setup, Docker configuration, scaling considerations, and environment-specific deployments"
+    },
+    {
+      "title": "Local Development Setup",
+      "purpose": "Guide developers through local development environment setup, including dependencies, development tools, testing environment, and debugging",
+      "parent": "Deployment"
+    },
+    {
+      "title": "Dashboard and User Interface",
+      "purpose": "Document the React dashboard implementation, user interface components, real-time data visualization, chart libraries, and user experience features"
+    },
+    {
+      "title": "Authentication and User Management",
+      "purpose": "Document authentication mechanisms, user management system, API key handling, security middleware, and access control"
+    },
+    {
+      "title": "Database Management",
+      "purpose": "Document data storage solutions, database schemas, data persistence strategies, caching mechanisms, and data lifecycle management"
+    },
+    {
+      "title": "API Reference",
+      "purpose": "Comprehensive API documentation including REST endpoints, WebSocket protocols, request/response formats, error handling, and authentication requirements"
+    },
+    {
+      "title": "Troubleshooting and FAQ",
+      "purpose": "Common issues, solutions, debugging strategies, performance troubleshooting, and frequently asked questions with detailed answers"
+    },
+    {
+      "title": "Development and Contributing",
+      "purpose": "Development guidelines, contribution process, code style, testing requirements, pre-commit hooks, and project maintenance practices"
+    }
+  ]
+}
