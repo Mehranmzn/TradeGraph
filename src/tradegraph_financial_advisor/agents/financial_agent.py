@@ -149,8 +149,10 @@ class FinancialAnalysisAgent(BaseAgent):
             sma_50 = close_prices.rolling(window=50).mean().iloc[-1]
 
             # Exponential Moving Averages
-            ema_12 = close_prices.ewm(span=12).mean().iloc[-1]
-            ema_26 = close_prices.ewm(span=26).mean().iloc[-1]
+            ema_12_series = close_prices.ewm(span=12).mean()
+            ema_26_series = close_prices.ewm(span=26).mean()
+            ema_12 = ema_12_series.iloc[-1]
+            ema_26 = ema_26_series.iloc[-1]
 
             # RSI (simplified calculation)
             delta = close_prices.diff()
@@ -160,7 +162,7 @@ class FinancialAnalysisAgent(BaseAgent):
             rsi = 100 - (100 / (1 + rs)).iloc[-1]
 
             # MACD
-            macd_line = ema_12 - ema_26
+            macd_line = ema_12_series - ema_26_series
             macd_signal = macd_line.ewm(span=9).mean().iloc[-1]
 
             # Bollinger Bands
