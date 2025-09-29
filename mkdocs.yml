@@ -1,0 +1,116 @@
+site_name: TradeGraph Financial Advisor
+site_description: AI-powered financial analysis and trading recommendations
+site_author: TradeGraph Team
+site_url: https://tradegraph.github.io/financial-advisor
+
+repo_name: tradegraph/financial-advisor
+repo_url: https://github.com/tradegraph/financial-advisor
+
+theme:
+  name: material
+  palette:
+    # Palette toggle for light mode
+    - scheme: default
+      primary: blue
+      accent: purple
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    # Palette toggle for dark mode
+    - scheme: slate
+      primary: blue
+      accent: purple
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - navigation.path
+    - navigation.top
+    - search.highlight
+    - search.share
+    - toc.follow
+    - content.code.copy
+    - content.code.select
+    - content.tabs.link
+
+plugins:
+  - search
+  - autorefs
+  - mkdocstrings:
+      handlers:
+        python:
+          options:
+            docstring_style: google
+            show_source: true
+            show_root_heading: true
+            show_root_toc_entry: false
+            show_symbol_type_heading: true
+            show_symbol_type_toc: true
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.critic
+  - pymdownx.caret
+  - pymdownx.keys
+  - pymdownx.mark
+  - pymdownx.tilde
+  - attr_list
+  - md_in_html
+  - tables
+  - footnotes
+  - pymdownx.emoji:
+      emoji_index: !!python/name:materialx.emoji.twemoji
+      emoji_generator: !!python/name:materialx.emoji.to_svg
+
+nav:
+  - Home: index.md
+  - Getting Started:
+    - Installation: getting-started/installation.md
+    - Quick Start: getting-started/quickstart.md
+    - Configuration: getting-started/configuration.md
+  - User Guide:
+    - CLI Usage: user-guide/cli.md
+    - Python API: user-guide/python-api.md
+    - Web Interface: user-guide/web-interface.md
+    - Analysis Types: user-guide/analysis-types.md
+  - API Reference:
+    - Core Classes: api-reference/core.md
+    - Agents: api-reference/agents.md
+    - Models: api-reference/models.md
+    - Services: api-reference/services.md
+    - Workflows: api-reference/workflows.md
+  - REST API:
+    - Overview: rest-api/overview.md
+    - Authentication: rest-api/authentication.md
+    - Endpoints: rest-api/endpoints.md
+    - WebSocket: rest-api/websocket.md
+  - Examples:
+    - Basic Usage: examples/basic.md
+    - Advanced Usage: examples/advanced.md
+    - Custom Agents: examples/custom-agents.md
+    - Integration: examples/integration.md
+  - Development:
+    - Contributing: development/contributing.md
+    - Testing: development/testing.md
+    - Architecture: development/architecture.md
+    - Deployment: development/deployment.md
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/tradegraph/financial-advisor
+    - icon: fontawesome/brands/python
+      link: https://pypi.org/project/tradegraph-financial-advisor
+  version:
+    provider: mike
