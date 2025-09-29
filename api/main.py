@@ -4,7 +4,13 @@ from contextlib import asynccontextmanager
 from datetime import datetime
 from typing import Dict, Any, List
 
-from fastapi import FastAPI, HTTPException, BackgroundTasks, WebSocket, WebSocketDisconnect
+from fastapi import (
+    FastAPI,
+    HTTPException,
+    BackgroundTasks,
+    WebSocket,
+    WebSocketDisconnect,
+)
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import HTMLResponse
@@ -14,14 +20,12 @@ import uvicorn
 from .routers import analysis, portfolio, alerts, health
 from .middleware.rate_limiter import RateLimitMiddleware
 from .middleware.logging import LoggingMiddleware
-from .auth.dependencies import get_current_user
 from .models import APIResponse
 from .websocket_manager import WebSocketManager
 
 # Configure logging
 logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
 
@@ -85,7 +89,7 @@ app = FastAPI(
     },
     lifespan=lifespan,
     docs_url="/docs",
-    redoc_url="/redoc"
+    redoc_url="/redoc",
 )
 
 # Add middleware
@@ -164,9 +168,7 @@ async def websocket_endpoint(websocket: WebSocket):
             logger.info(f"Received WebSocket message: {data}")
 
             # Echo back for now - in production, this would handle different message types
-            await websocket_manager.send_personal_message(
-                f"Echo: {data}", websocket
-            )
+            await websocket_manager.send_personal_message(f"Echo: {data}", websocket)
     except WebSocketDisconnect:
         websocket_manager.disconnect(websocket)
 
@@ -185,8 +187,8 @@ async def analysis_websocket(websocket: WebSocket, analysis_id: str):
                     "type": "analysis_update",
                     "analysis_id": analysis_id,
                     "message": data,
-                    "timestamp": datetime.now().isoformat()
-                }
+                    "timestamp": datetime.now().isoformat(),
+                },
             )
     except WebSocketDisconnect:
         websocket_manager.disconnect(websocket)
@@ -207,7 +209,7 @@ async def api_info():
                 "AI-powered recommendations",
                 "Portfolio optimization",
                 "Risk management",
-                "WebSocket support"
+                "WebSocket support",
             ],
             "endpoints": {
                 "health": "/health",
@@ -215,12 +217,12 @@ async def api_info():
                 "portfolio": "/portfolio",
                 "alerts": "/alerts",
                 "websocket": "/ws",
-                "docs": "/docs"
+                "docs": "/docs",
             },
             "status": "operational",
-            "uptime": "calculated_dynamically"
+            "uptime": "calculated_dynamically",
         },
-        message="API is operational"
+        message="API is operational",
     )
 
 
@@ -235,8 +237,8 @@ async def http_exception_handler(request, exc):
         error={
             "type": "HTTPException",
             "status_code": exc.status_code,
-            "detail": exc.detail
-        }
+            "detail": exc.detail,
+        },
     )
 
 
@@ -248,10 +250,7 @@ async def general_exception_handler(request, exc):
         success=False,
         data=None,
         message="Internal server error",
-        error={
-            "type": "InternalServerError",
-            "detail": "An unexpected error occurred"
-        }
+        error={"type": "InternalServerError", "detail": "An unexpected error occurred"},
     )
 
 
@@ -263,9 +262,9 @@ async def get_background_tasks():
         success=True,
         data={
             "active_tasks": len(background_tasks_status),
-            "tasks": background_tasks_status
+            "tasks": background_tasks_status,
         },
-        message="Background tasks status retrieved"
+        message="Background tasks status retrieved",
     )
 
 
@@ -278,16 +277,12 @@ async def get_task_status(task_id: str):
     return APIResponse(
         success=True,
         data=background_tasks_status[task_id],
-        message=f"Task {task_id} status retrieved"
+        message=f"Task {task_id} status retrieved",
     )
 
 
 # Development server
 if __name__ == "__main__":
     uvicorn.run(
-        "api.main:app",
-        host="0.0.0.0",
-        port=8000,
-        reload=True,
-        log_level="info"
+        "api.main:app", host="0.0.0.0", port=8000, reload=True, log_level="info"
     )

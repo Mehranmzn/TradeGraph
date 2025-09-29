@@ -13,8 +13,9 @@ from ..models import (
     AnalysisResult,
     AnalysisStatus,
     RecommendationResponse,
-    PortfolioResponse
+    PortfolioResponse,
 )
+
 from ..auth.dependencies import get_current_user
 from ..websocket_manager import WebSocketManager
 from tradegraph_financial_advisor import FinancialAdvisor
@@ -30,9 +31,7 @@ analysis_store: Dict[str, AnalysisResult] = {}
 
 
 async def run_analysis_task(
-    analysis_id: str,
-    request: AnalysisRequest,
-    websocket_manager: WebSocketManager
+    analysis_id: str, request: AnalysisRequest, websocket_manager: WebSocketManager
 ):
     """Background task to run financial analysis."""
     try:
@@ -40,30 +39,31 @@ async def run_analysis_task(
         analysis_store[analysis_id].status = AnalysisStatus.IN_PROGRESS
         analysis_store[analysis_id].progress = 0.0
 
-        await websocket_manager.send_analysis_update(analysis_id, {
-            "status": "in_progress",
-            "progress": 0.0,
-            "message": "Starting analysis..."
-        })
+        await websocket_manager.send_analysis_update(
+            analysis_id,
+            {
+                "status": "in_progress",
+                "progress": 0.0,
+                "message": "Starting analysis...",
+            },
+        )
 
         # Run the analysis
-        await websocket_manager.send_analysis_update(analysis_id, {
-            "progress": 20.0,
-            "message": "Collecting market data..."
-        })
+        await websocket_manager.send_analysis_update(
+            analysis_id, {"progress": 20.0, "message": "Collecting market data..."}
+        )
 
         results = await financial_advisor.analyze_portfolio(
             symbols=request.symbols,
             portfolio_size=request.portfolio_size,
             risk_tolerance=request.risk_tolerance,
             time_horizon=request.time_horizon,
-            include_reports=request.include_reports
+            include_reports=request.include_reports,
         )
 
-        await websocket_manager.send_analysis_update(analysis_id, {
-            "progress": 80.0,
-            "message": "Generating recommendations..."
-        })
+        await websocket_manager.send_analysis_update(
+            analysis_id, {"progress": 80.0, "message": "Generating recommendations..."}
+        )
 
         # Store results
         analysis_store[analysis_id].status = AnalysisStatus.COMPLETED
@@ -71,12 +71,15 @@ async def run_analysis_task(
         analysis_store[analysis_id].results = results
         analysis_store[analysis_id].progress = 100.0
 
-        await websocket_manager.send_analysis_update(analysis_id, {
-            "status": "completed",
-            "progress": 100.0,
-            "message": "Analysis completed successfully",
-            "results": results
-        })
+        await websocket_manager.send_analysis_update(
+            analysis_id,
+            {
+                "status": "completed",
+                "progress": 100.0,
+                "message": "Analysis completed successfully",
+                "results": results,
+            },
+        )
 
     except Exception as e:
         # Update status to failed
@@ -84,17 +87,16 @@ async def run_analysis_task(
         analysis_store[analysis_id].error_message = str(e)
         analysis_store[analysis_id].completed_at = datetime.now()
 
-        await websocket_manager.send_analysis_update(analysis_id, {
-            "status": "failed",
-            "message": f"Analysis failed: {str(e)}"
-        })
+        await websocket_manager.send_analysis_update(
+            analysis_id, {"status": "failed", "message": f"Analysis failed: {str(e)}"}
+        )
 
 
 @router.post("/comprehensive", response_model=APIResponse)
 async def start_comprehensive_analysis(
     request: AnalysisRequest,
     background_tasks: BackgroundTasks,
-    current_user: Optional[Dict] = Depends(get_current_user)
+    current_user: Optional[Dict] = Depends(get_current_user),
 ):
     """
     Start a comprehensive financial analysis.
@@ -118,17 +120,14 @@ async def start_comprehensive_analysis(
             analysis_id=analysis_id,
             status=AnalysisStatus.PENDING,
             symbols=request.symbols,
-            created_at=datetime.now()
+            created_at=datetime.now(),
         )
 
         analysis_store[analysis_id] = analysis_record
 
         # Start background task
         background_tasks.add_task(
-            run_analysis_task,
-            analysis_id,
-            request,
-            websocket_manager
+            run_analysis_task, analysis_id, request, websocket_manager
         )
 
         return APIResponse(
@@ -139,19 +138,21 @@ async def start_comprehensive_analysis(
                 "symbols": request.symbols,
                 "estimated_completion": "2-5 minutes",
                 "websocket_url": f"/ws/analysis/{analysis_id}",
-                "polling_url": f"/analysis/status/{analysis_id}"
+                "polling_url": f"/analysis/status/{analysis_id}",
             },
-            message="Comprehensive analysis started successfully"
+            message="Comprehensive analysis started successfully",
         )
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to start analysis: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to start analysis: {str(e)}"
+        )
 
 
 @router.post("/quick", response_model=APIResponse)
 async def quick_analysis(
     request: QuickAnalysisRequest,
-    current_user: Optional[Dict] = Depends(get_current_user)
+    current_user: Optional[Dict] = Depends(get_current_user),
 ):
     """
     Perform quick financial analysis.
@@ -161,14 +162,11 @@ async def quick_analysis(
     """
     try:
         results = await financial_advisor.quick_analysis(
-            symbols=request.symbols,
-            analysis_type=request.analysis_type
+            symbols=request.symbols, analysis_type=request.analysis_type
         )
 
         return APIResponse(
-            success=True,
-            data=results,
-            message="Quick analysis completed successfully"
+            success=True, data=results, message="Quick analysis completed successfully"
         )
 
     except Exception as e:
@@ -186,7 +184,7 @@ async def get_analysis_status(analysis_id: str):
     return APIResponse(
         success=True,
         data=analysis.dict(),
-        message=f"Analysis {analysis_id} status retrieved"
+        message=f"Analysis {analysis_id} status retrieved",
     )
 
 
@@ -201,13 +199,13 @@ async def get_analysis_results(analysis_id: str):
     if analysis.status != AnalysisStatus.COMPLETED:
         raise HTTPException(
             status_code=400,
-            detail=f"Analysis is not completed. Current status: {analysis.status}"
+            detail=f"Analysis is not completed. Current status: {analysis.status}",
         )
 
     return APIResponse(
         success=True,
         data=analysis.results,
-        message="Analysis results retrieved successfully"
+        message="Analysis results retrieved successfully",
     )
 
 
@@ -219,10 +217,14 @@ async def cancel_analysis(analysis_id: str):
 
     analysis = analysis_store[analysis_id]
 
-    if analysis.status in [AnalysisStatus.COMPLETED, AnalysisStatus.FAILED, AnalysisStatus.CANCELLED]:
+    if analysis.status in [
+        AnalysisStatus.COMPLETED,
+        AnalysisStatus.FAILED,
+        AnalysisStatus.CANCELLED,
+    ]:
         raise HTTPException(
             status_code=400,
-            detail=f"Cannot cancel analysis with status: {analysis.status}"
+            detail=f"Cannot cancel analysis with status: {analysis.status}",
         )
 
     # Update status
@@ -230,15 +232,14 @@ async def cancel_analysis(analysis_id: str):
     analysis.completed_at = datetime.now()
 
     # Notify via WebSocket
-    await websocket_manager.send_analysis_update(analysis_id, {
-        "status": "cancelled",
-        "message": "Analysis cancelled by user"
-    })
+    await websocket_manager.send_analysis_update(
+        analysis_id, {"status": "cancelled", "message": "Analysis cancelled by user"}
+    )
 
     return APIResponse(
         success=True,
         data={"analysis_id": analysis_id, "status": "cancelled"},
-        message="Analysis cancelled successfully"
+        message="Analysis cancelled successfully",
     )
 
 
@@ -247,7 +248,7 @@ async def get_analysis_history(
     limit: int = 20,
     offset: int = 0,
     status: Optional[str] = None,
-    current_user: Optional[Dict] = Depends(get_current_user)
+    current_user: Optional[Dict] = Depends(get_current_user),
 ):
     """Get analysis history with pagination and filtering."""
     try:
@@ -263,7 +264,7 @@ async def get_analysis_history(
 
         # Apply pagination
         total_count = len(filtered_analyses)
-        paginated_analyses = filtered_analyses[offset:offset + limit]
+        paginated_analyses = filtered_analyses[offset : offset + limit]
 
         return APIResponse(
             success=True,
@@ -272,13 +273,15 @@ async def get_analysis_history(
                 "total_count": total_count,
                 "limit": limit,
                 "offset": offset,
-                "has_more": offset + limit < total_count
+                "has_more": offset + limit < total_count,
             },
-            message="Analysis history retrieved successfully"
+            message="Analysis history retrieved successfully",
         )
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to retrieve history: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to retrieve history: {str(e)}"
+        )
 
 
 @router.get("/stream/{analysis_id}")
@@ -300,7 +303,7 @@ async def stream_analysis_progress(analysis_id: str):
                 "analysis_id": analysis_id,
                 "status": analysis.status.value,
                 "progress": analysis.progress,
-                "timestamp": datetime.now().isoformat()
+                "timestamp": datetime.now().isoformat(),
             }
 
             yield f"data: {event_data}\n\n"
@@ -309,7 +312,7 @@ async def stream_analysis_progress(analysis_id: str):
             if analysis.status in [
                 AnalysisStatus.COMPLETED,
                 AnalysisStatus.FAILED,
-                AnalysisStatus.CANCELLED
+                AnalysisStatus.CANCELLED,
             ]:
                 break
 
@@ -322,7 +325,7 @@ async def stream_analysis_progress(analysis_id: str):
         headers={
             "Cache-Control": "no-cache",
             "Connection": "keep-alive",
-        }
+        },
     )
 
 
@@ -330,7 +333,7 @@ async def stream_analysis_progress(analysis_id: str):
 async def batch_analysis(
     requests: list[AnalysisRequest],
     background_tasks: BackgroundTasks,
-    current_user: Optional[Dict] = Depends(get_current_user)
+    current_user: Optional[Dict] = Depends(get_current_user),
 ):
     """
     Start multiple analyses in batch.
@@ -352,7 +355,7 @@ async def batch_analysis(
                 analysis_id=analysis_id,
                 status=AnalysisStatus.PENDING,
                 symbols=request.symbols,
-                created_at=datetime.now()
+                created_at=datetime.now(),
             )
 
             analysis_store[analysis_id] = analysis_record
@@ -360,10 +363,7 @@ async def batch_analysis(
 
             # Start background task
             background_tasks.add_task(
-                run_analysis_task,
-                analysis_id,
-                request,
-                websocket_manager
+                run_analysis_task, analysis_id, request, websocket_manager
             )
 
         return APIResponse(
@@ -372,13 +372,15 @@ async def batch_analysis(
                 "analysis_ids": analysis_ids,
                 "batch_size": len(requests),
                 "status": "pending",
-                "estimated_completion": f"{len(requests) * 3}-{len(requests) * 6} minutes"
+                "estimated_completion": f"{len(requests) * 3}-{len(requests) * 6} minutes",
             },
-            message=f"Batch analysis of {len(requests)} requests started successfully"
+            message=f"Batch analysis of {len(requests)} requests started successfully",
         )
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to start batch analysis: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to start batch analysis: {str(e)}"
+        )
 
 
 @router.get("/compare/{analysis_id1}/{analysis_id2}", response_model=APIResponse)
@@ -387,13 +389,14 @@ async def compare_analyses(analysis_id1: str, analysis_id2: str):
     # Check both analyses exist and are completed
     for analysis_id in [analysis_id1, analysis_id2]:
         if analysis_id not in analysis_store:
-            raise HTTPException(status_code=404, detail=f"Analysis {analysis_id} not found")
+            raise HTTPException(
+                status_code=404, detail=f"Analysis {analysis_id} not found"
+            )
 
         analysis = analysis_store[analysis_id]
         if analysis.status != AnalysisStatus.COMPLETED:
             raise HTTPException(
-                status_code=400,
-                detail=f"Analysis {analysis_id} is not completed"
+                status_code=400, detail=f"Analysis {analysis_id} is not completed"
             )
 
     try:
@@ -406,30 +409,36 @@ async def compare_analyses(analysis_id1: str, analysis_id2: str):
                 "id": analysis_id1,
                 "symbols": analysis1.symbols,
                 "created_at": analysis1.created_at,
-                "results_summary": "extracted_from_results"
+                "results_summary": "extracted_from_results",
             },
             "analysis_2": {
                 "id": analysis_id2,
                 "symbols": analysis2.symbols,
                 "created_at": analysis2.created_at,
-                "results_summary": "extracted_from_results"
+                "results_summary": "extracted_from_results",
             },
             "comparison": {
                 "common_symbols": list(set(analysis1.symbols) & set(analysis2.symbols)),
-                "unique_to_analysis_1": list(set(analysis1.symbols) - set(analysis2.symbols)),
-                "unique_to_analysis_2": list(set(analysis2.symbols) - set(analysis1.symbols)),
-                "time_difference": abs((analysis2.created_at - analysis1.created_at).total_seconds()),
-            }
+                "unique_to_analysis_1": list(
+                    set(analysis1.symbols) - set(analysis2.symbols)
+                ),
+                "unique_to_analysis_2": list(
+                    set(analysis2.symbols) - set(analysis1.symbols)
+                ),
+                "time_difference": abs(
+                    (analysis2.created_at - analysis1.created_at).total_seconds()
+                ),
+            },
         }
 
         return APIResponse(
-            success=True,
-            data=comparison,
-            message="Analysis comparison completed"
+            success=True, data=comparison, message="Analysis comparison completed"
         )
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to compare analyses: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to compare analyses: {str(e)}"
+        )
 
 
 @router.get("/metrics", response_model=APIResponse)
@@ -437,25 +446,35 @@ async def get_analysis_metrics():
     """Get analysis system metrics."""
     try:
         total_analyses = len(analysis_store)
-        completed_analyses = sum(1 for a in analysis_store.values() if a.status == AnalysisStatus.COMPLETED)
-        failed_analyses = sum(1 for a in analysis_store.values() if a.status == AnalysisStatus.FAILED)
-        in_progress_analyses = sum(1 for a in analysis_store.values() if a.status == AnalysisStatus.IN_PROGRESS)
+        completed_analyses = sum(
+            1 for a in analysis_store.values() if a.status == AnalysisStatus.COMPLETED
+        )
+        failed_analyses = sum(
+            1 for a in analysis_store.values() if a.status == AnalysisStatus.FAILED
+        )
+        in_progress_analyses = sum(
+            1 for a in analysis_store.values() if a.status == AnalysisStatus.IN_PROGRESS
+        )
 
         metrics = {
             "total_analyses": total_analyses,
             "completed_analyses": completed_analyses,
             "failed_analyses": failed_analyses,
             "in_progress_analyses": in_progress_analyses,
-            "success_rate": completed_analyses / total_analyses if total_analyses > 0 else 0,
+            "success_rate": (
+                completed_analyses / total_analyses if total_analyses > 0 else 0
+            ),
             "websocket_stats": websocket_manager.get_stats(),
-            "system_status": "operational"
+            "system_status": "operational",
         }
 
         return APIResponse(
             success=True,
             data=metrics,
-            message="Analysis metrics retrieved successfully"
+            message="Analysis metrics retrieved successfully",
         )
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to retrieve metrics: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to retrieve metrics: {str(e)}"
+        )
