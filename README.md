@@ -423,7 +423,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 🆘 Support
 
 - **GitHub Issues**: [Report bugs or request features](https://github.com/tradegraph/financial-advisor/issues)
-- **Documentation**: [Full documentation](https://docs.tradegraph.com)
+- **Documentation**: [Full documentation](https://deepwiki.com/Mehranmzn/TradeGraph)
 - **Community**: [Discord server](https://discord.gg/tradegraph)
 
 ## 🙏 Acknowledgments
