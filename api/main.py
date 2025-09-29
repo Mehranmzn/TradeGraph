@@ -117,58 +117,40 @@ except RuntimeError:
 @app.get("/", response_class=HTMLResponse)
 async def root():
     """Root endpoint serving the frontend or API information."""
-    return """
-    <html>
-        <head>
-            <title>TradeGraph Financial Advisor</title>
-            <style>
-                body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-                       margin: 0; padding: 40px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                       color: white; min-height: 100vh; }
-                .container { max-width: 800px; margin: 0 auto; text-align: center; }
-                .logo { font-size: 3em; margin-bottom: 20px; }
-                .subtitle { font-size: 1.2em; opacity: 0.9; margin-bottom: 40px; }
-                .links { display: flex; gap: 20px; justify-content: center; flex-wrap: wrap; }
-                .link { background: rgba(255,255,255,0.2); padding: 15px 30px; border-radius: 10px;
-                        text-decoration: none; color: white; transition: all 0.3s; }
-                .link:hover { background: rgba(255,255,255,0.3); transform: translateY(-2px); }
-                .features { margin-top: 60px; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; }
-                .feature { background: rgba(255,255,255,0.1); padding: 20px; border-radius: 10px; }
-            </style>
-        </head>
-        <body>
-            <div class="container">
-                <div class="logo">📈 TradeGraph</div>
-                <div class="subtitle">AI-Powered Financial Analysis & Trading Recommendations</div>
-
-                <div class="links">
-                    <a href="/docs" class="link">📚 API Documentation</a>
-                    <a href="/redoc" class="link">📖 ReDoc</a>
-                    <a href="/health" class="link">💚 Health Check</a>
-                </div>
-
-                <div class="features">
-                    <div class="feature">
-                        <h3>🤖 Multi-Agent AI</h3>
-                        <p>Coordinated agents for news analysis, financial data, and recommendations</p>
-                    </div>
-                    <div class="feature">
-                        <h3>📊 Real-time Analysis</h3>
-                        <p>Live market data, technical indicators, and sentiment analysis</p>
-                    </div>
-                    <div class="feature">
-                        <h3>🎯 Smart Recommendations</h3>
-                        <p>AI-generated buy/sell/hold signals with confidence scores</p>
-                    </div>
-                    <div class="feature">
-                        <h3>🛡️ Risk Management</h3>
-                        <p>Advanced portfolio optimization and risk assessment</p>
+    try:
+        with open("frontend/dist/index.html", "r") as f:
+            return f.read()
+    except FileNotFoundError:
+        # Fallback to basic API info if frontend not found
+        return """
+        <html>
+            <head>
+                <title>TradeGraph Financial Advisor API</title>
+                <style>
+                    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                           margin: 0; padding: 40px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                           color: white; min-height: 100vh; text-align: center; }
+                    .container { max-width: 600px; margin: 0 auto; }
+                    .logo { font-size: 3em; margin-bottom: 20px; }
+                    .links { display: flex; gap: 20px; justify-content: center; margin-top: 40px; }
+                    .link { background: rgba(255,255,255,0.2); padding: 15px 30px; border-radius: 10px;
+                            text-decoration: none; color: white; transition: all 0.3s; }
+                    .link:hover { background: rgba(255,255,255,0.3); transform: translateY(-2px); }
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <div class="logo">📈 TradeGraph API</div>
+                    <p>Frontend not found - running in API-only mode</p>
+                    <div class="links">
+                        <a href="/docs" class="link">📚 API Documentation</a>
+                        <a href="/redoc" class="link">📖 ReDoc</a>
+                        <a href="/health" class="link">💚 Health Check</a>
                     </div>
                 </div>
-            </div>
-        </body>
-    </html>
-    """
+            </body>
+        </html>
+        """
 
 
 @app.websocket("/ws")

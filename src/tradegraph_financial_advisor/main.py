@@ -47,12 +47,15 @@ class FinancialAdvisor:
                 portfolio_size = settings.default_portfolio_size
 
             # Step 1: Run the main workflow
-            portfolio_recommendation = await self.workflow.analyze_portfolio(
+            workflow_results = await self.workflow.analyze_portfolio(
                 symbols=symbols,
                 portfolio_size=portfolio_size,
                 risk_tolerance=risk_tolerance,
                 time_horizon=time_horizon
             )
+
+            portfolio_recommendation = workflow_results.get("portfolio_recommendation")
+            sentiment_analysis = workflow_results.get("sentiment_analysis", {})
 
             # Step 2: Enhance with detailed report analysis if requested
             report_analyses = {}
@@ -96,7 +99,8 @@ class FinancialAdvisor:
                     "time_horizon": time_horizon,
                     "analysis_timestamp": datetime.now().isoformat()
                 },
-                "portfolio_recommendation": portfolio_recommendation.dict() if portfolio_recommendation else None,
+                "portfolio_recommendation": portfolio_recommendation if portfolio_recommendation else None,
+                "sentiment_analysis": sentiment_analysis,
                 "detailed_reports": report_analyses,
                 "analysis_metadata": {
                     "workflow_version": "1.0.0",

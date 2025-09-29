@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TradeGraph Financial Advisor</title>
+    <style>
+        :root {
+            --positive: #10b981;
+            --negative: #ef4444;
+            --warning: #f59e0b;
+            --neutral: #6b7280;
+            --background: #0f172a;
+            --surface: #1e293b;
+            --text: #f8fafc;
+            --text-secondary: #94a3b8;
+            --border: #334155;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--background);
+            color: var(--text);
+            min-height: 100vh;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 2rem;
+            text-align: center;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .analysis-form {
+            background: var(--surface);
+            padding: 2rem;
+            border-radius: 12px;
+            margin-bottom: 2rem;
+            border: 1px solid var(--border);
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: var(--background);
+            color: var(--text);
+            font-size: 1rem;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 0.75rem 2rem;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            transition: transform 0.2s;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .results-container {
+            display: none;
+            gap: 2rem;
+            grid-template-columns: 1fr 1fr;
+        }
+
+        .results-container.active {
+            display: grid;
+        }
+
+        .sentiment-panel, .recommendation-panel {
+            background: var(--surface);
+            padding: 2rem;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+        }
+
+        .panel-title {
+            font-size: 1.5rem;
+            margin-bottom: 1.5rem;
+            color: var(--text);
+        }
+
+        .sentiment-item {
+            margin-bottom: 2rem;
+            padding: 1.5rem;
+            border-radius: 8px;
+            border-left: 4px solid;
+        }
+
+        .sentiment-item.bullish {
+            background: rgba(16, 185, 129, 0.1);
+            border-left-color: var(--positive);
+        }
+
+        .sentiment-item.bearish {
+            background: rgba(239, 68, 68, 0.1);
+            border-left-color: var(--negative);
+        }
+
+        .sentiment-item.warning {
+            background: rgba(245, 158, 11, 0.1);
+            border-left-color: var(--warning);
+        }
+
+        .sentiment-item.neutral {
+            background: rgba(107, 114, 128, 0.1);
+            border-left-color: var(--neutral);
+        }
+
+        .sentiment-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .sentiment-symbol {
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+
+        .sentiment-score {
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-weight: 600;
+            color: white;
+        }
+
+        .sentiment-score.bullish {
+            background: var(--positive);
+        }
+
+        .sentiment-score.bearish {
+            background: var(--negative);
+        }
+
+        .sentiment-score.warning {
+            background: var(--warning);
+        }
+
+        .sentiment-score.neutral {
+            background: var(--neutral);
+        }
+
+        .news-summary {
+            margin: 1rem 0;
+            line-height: 1.6;
+            color: var(--text-secondary);
+        }
+
+        .key-themes {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        .theme-tag {
+            padding: 0.25rem 0.5rem;
+            background: var(--background);
+            border-radius: 4px;
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
+        .articles-list {
+            margin-top: 1rem;
+        }
+
+        .article-item {
+            padding: 0.75rem;
+            margin: 0.5rem 0;
+            background: var(--background);
+            border-radius: 6px;
+            border-left: 3px solid;
+        }
+
+        .article-item.positive {
+            border-left-color: var(--positive);
+        }
+
+        .article-item.negative {
+            border-left-color: var(--negative);
+        }
+
+        .article-item.neutral {
+            border-left-color: var(--neutral);
+        }
+
+        .article-title {
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .article-url {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            text-decoration: none;
+        }
+
+        .article-url:hover {
+            color: var(--text);
+        }
+
+        .loading {
+            text-align: center;
+            padding: 3rem;
+            color: var(--text-secondary);
+        }
+
+        .error {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid var(--negative);
+            color: var(--negative);
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+        }
+
+        @media (max-width: 768px) {
+            .results-container.active {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>📈 TradeGraph</h1>
+        <p>AI-Powered Financial Analysis & Sentiment Tracking</p>
+    </div>
+
+    <div class="container">
+        <div class="analysis-form">
+            <h2>Stock Analysis Request</h2>
+            <form id="analysisForm">
+                <div class="form-group">
+                    <label for="symbol">Stock Symbol</label>
+                    <input type="text" id="symbol" name="symbol" placeholder="e.g. AAPL, TSLA, MSFT" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="portfolioSize">Portfolio Size</label>
+                    <input type="number" id="portfolioSize" name="portfolioSize" value="250000" min="1000" step="1000">
+                </div>
+
+                <div class="form-group">
+                    <label for="riskTolerance">Risk Tolerance</label>
+                    <select id="riskTolerance" name="riskTolerance">
+                        <option value="conservative">Conservative</option>
+                        <option value="moderate">Moderate</option>
+                        <option value="aggressive" selected>Aggressive</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="timeHorizon">Time Horizon</label>
+                    <select id="timeHorizon" name="timeHorizon">
+                        <option value="short_term">Short Term (< 1 year)</option>
+                        <option value="medium_term">Medium Term (1-3 years)</option>
+                        <option value="long_term" selected>Long Term (> 3 years)</option>
+                    </select>
+                </div>
+
+                <button type="submit" class="btn" id="analyzeBtn">
+                    🔍 Analyze Stock
+                </button>
+            </form>
+        </div>
+
+        <div id="loadingMessage" class="loading" style="display: none;">
+            <h3>🤖 Analyzing market data and sentiment...</h3>
+            <p>This may take up to 2 minutes to complete comprehensive analysis</p>
+        </div>
+
+        <div id="errorMessage" class="error" style="display: none;"></div>
+
+        <div id="resultsContainer" class="results-container">
+            <div class="sentiment-panel">
+                <h2 class="panel-title">📰 News Sentiment Analysis</h2>
+                <div id="sentimentContent"></div>
+            </div>
+
+            <div class="recommendation-panel">
+                <h2 class="panel-title">💡 Trading Recommendations</h2>
+                <div id="recommendationContent"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = '/analysis';
+
+        document.getElementById('analysisForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const formData = new FormData(e.target);
+            const data = {
+                symbols: [formData.get('symbol').toUpperCase()],
+                portfolio_size: parseFloat(formData.get('portfolioSize')),
+                risk_tolerance: formData.get('riskTolerance'),
+                time_horizon: formData.get('timeHorizon'),
+                analysis_type: 'comprehensive'
+            };
+
+            showLoading();
+            hideError();
+
+            try {
+                const response = await fetch(`${API_BASE}/comprehensive`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const result = await response.json();
+                displayResults(result.data);
+            } catch (error) {
+                console.error('Analysis failed:', error);
+                showError('Analysis failed: ' + error.message);
+            } finally {
+                hideLoading();
+            }
+        });
+
+        function showLoading() {
+            document.getElementById('loadingMessage').style.display = 'block';
+            document.getElementById('resultsContainer').classList.remove('active');
+            document.getElementById('analyzeBtn').disabled = true;
+            document.getElementById('analyzeBtn').textContent = '🤖 Analyzing...';
+        }
+
+        function hideLoading() {
+            document.getElementById('loadingMessage').style.display = 'none';
+            document.getElementById('analyzeBtn').disabled = false;
+            document.getElementById('analyzeBtn').textContent = '🔍 Analyze Stock';
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+        }
+
+        function hideError() {
+            document.getElementById('errorMessage').style.display = 'none';
+        }
+
+        function displayResults(data) {
+            displaySentiment(data.sentiment_analysis || {});
+            displayRecommendations(data.portfolio_recommendation);
+            document.getElementById('resultsContainer').classList.add('active');
+        }
+
+        function displaySentiment(sentimentData) {
+            const container = document.getElementById('sentimentContent');
+
+            if (Object.keys(sentimentData).length === 0) {
+                container.innerHTML = '<p>No sentiment data available</p>';
+                return;
+            }
+
+            let html = '';
+
+            for (const [symbol, sentiment] of Object.entries(sentimentData)) {
+                const sentimentClass = getSentimentClass(sentiment.sentiment_label);
+                const scoreClass = getSentimentClass(sentiment.sentiment_label);
+                const score = sentiment.sentiment_score || 0;
+
+                html += `
+                    <div class="sentiment-item ${sentimentClass}">
+                        <div class="sentiment-header">
+                            <span class="sentiment-symbol">${symbol}</span>
+                            <span class="sentiment-score ${scoreClass}">
+                                ${sentiment.sentiment_label} (${(score * 100).toFixed(0)}%)
+                            </span>
+                        </div>
+
+                        <div class="news-summary">
+                            ${sentiment.news_summary || 'No summary available'}
+                        </div>
+
+                        <div class="key-themes">
+                            ${(sentiment.key_themes || []).map(theme =>
+                                `<span class="theme-tag">${theme}</span>`
+                            ).join('')}
+                        </div>
+
+                        ${sentiment.articles && sentiment.articles.length > 0 ? `
+                            <div class="articles-list">
+                                <h4>Related Articles (${sentiment.article_count || 0})</h4>
+                                ${sentiment.articles.slice(0, 5).map(article => `
+                                    <div class="article-item ${article.sentiment_contribution || 'neutral'}">
+                                        <div class="article-title">${article.title}</div>
+                                        ${article.url ? `<a href="${article.url}" class="article-url" target="_blank">Read more →</a>` : ''}
+                                    </div>
+                                `).join('')}
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            }
+
+            container.innerHTML = html;
+        }
+
+        function displayRecommendations(recommendation) {
+            const container = document.getElementById('recommendationContent');
+
+            if (!recommendation) {
+                container.innerHTML = '<p>No recommendations available</p>';
+                return;
+            }
+
+            const recommendations = recommendation.recommendations || [];
+
+            let html = `
+                <div class="recommendation-summary">
+                    <h3>Portfolio Overview</h3>
+                    <p><strong>Total Confidence:</strong> ${((recommendation.total_confidence || 0) * 100).toFixed(0)}%</p>
+                    <p><strong>Diversification Score:</strong> ${((recommendation.diversification_score || 0) * 100).toFixed(0)}%</p>
+                    <p><strong>Risk Level:</strong> ${recommendation.overall_risk_level || 'N/A'}</p>
+                </div>
+            `;
+
+            if (recommendations.length > 0) {
+                html += '<h3>Individual Recommendations</h3>';
+
+                recommendations.forEach(rec => {
+                    const recClass = getRecommendationClass(rec.recommendation);
+                    html += `
+                        <div class="sentiment-item ${recClass}">
+                            <div class="sentiment-header">
+                                <span class="sentiment-symbol">${rec.symbol}</span>
+                                <span class="sentiment-score ${recClass}">
+                                    ${rec.recommendation.toUpperCase()} (${(rec.confidence_score * 100).toFixed(0)}%)
+                                </span>
+                            </div>
+
+                            <div class="recommendation-details">
+                                <p><strong>Current Price:</strong> $${rec.current_price?.toFixed(2) || 'N/A'}</p>
+                                <p><strong>Target Price:</strong> $${rec.target_price?.toFixed(2) || 'N/A'}</p>
+                                <p><strong>Allocation:</strong> ${(rec.recommended_allocation * 100).toFixed(1)}%</p>
+                                <p><strong>Risk Level:</strong> ${rec.risk_level}</p>
+                            </div>
+
+                            <div class="key-themes">
+                                ${(rec.key_factors || []).map(factor =>
+                                    `<span class="theme-tag">${factor}</span>`
+                                ).join('')}
+                            </div>
+
+                            ${rec.analyst_notes ? `
+                                <div class="news-summary">
+                                    <strong>Analysis:</strong> ${rec.analyst_notes}
+                                </div>
+                            ` : ''}
+                        </div>
+                    `;
+                });
+            }
+
+            container.innerHTML = html;
+        }
+
+        function getSentimentClass(label) {
+            switch (label?.toLowerCase()) {
+                case 'bullish': return 'bullish';
+                case 'bearish': return 'bearish';
+                case 'warning': return 'warning';
+                case 'neutral':
+                default: return 'neutral';
+            }
+        }
+
+        function getRecommendationClass(recommendation) {
+            switch (recommendation?.toLowerCase()) {
+                case 'buy':
+                case 'strong_buy': return 'bullish';
+                case 'sell':
+                case 'strong_sell': return 'bearish';
+                case 'hold': return 'warning';
+                default: return 'neutral';
+            }
+        }
+    </script>
+</body>
+</html>

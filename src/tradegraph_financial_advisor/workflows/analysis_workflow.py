@@ -76,7 +76,7 @@ class FinancialAnalysisWorkflow:
         portfolio_size: float = None,
         risk_tolerance: str = "medium",
         time_horizon: str = "medium_term"
-    ) -> PortfolioRecommendation:
+    ) -> Dict[str, Any]:
 
         if portfolio_size is None:
             portfolio_size = settings.default_portfolio_size
@@ -109,19 +109,17 @@ class FinancialAnalysisWorkflow:
             # Execute workflow
             result = await self.workflow.ainvoke(initial_state)
 
-            # Convert to PortfolioRecommendation
-            if result["portfolio_recommendation"]:
-                portfolio_rec = PortfolioRecommendation(**result["portfolio_recommendation"])
-                return portfolio_rec
-            else:
-                # Fallback: create basic portfolio recommendation
-                return PortfolioRecommendation(
-                    recommendations=[],
-                    total_confidence=0.0,
-                    diversification_score=0.0,
-                    overall_risk_level=RiskLevel.MEDIUM,
-                    portfolio_size=portfolio_size
-                )
+            # Return the complete analysis state including sentiment analysis
+            analysis_result = {
+                "portfolio_recommendation": result.get("portfolio_recommendation"),
+                "sentiment_analysis": result.get("sentiment_analysis", {}),
+                "news_data": result.get("news_data", {}),
+                "financial_data": result.get("financial_data", {}),
+                "recommendations": result.get("recommendations", []),
+                "analysis_context": result.get("analysis_context", {})
+            }
+
+            return analysis_result
 
         except Exception as e:
             logger.error(f"Workflow execution failed: {str(e)}")
@@ -220,27 +218,32 @@ class FinancialAnalysisWorkflow:
             for symbol in state["symbols"]:
                 symbol_articles = [
                     article for article in articles
-                    if symbol in article.get("symbols", [])
+                    if symbol in getattr(article, 'symbols', [])
                 ]
 
                 if not symbol_articles:
                     continue
 
-                # Use LLM for advanced sentiment analysis
+                # Use LLM for advanced sentiment analysis with news summary
+                articles_text = chr(10).join([f"- {article.title}: {article.content[:300]}..." for article in symbol_articles[:10]])
+
                 sentiment_prompt = f"""
                 Analyze the sentiment of the following news articles about {symbol}.
                 Provide a sentiment score from -1 (very bearish) to 1 (very bullish),
-                and identify key themes and sentiment drivers.
+                identify key themes, sentiment drivers, and create a concise summary.
 
                 Articles:
-                {chr(10).join([f"- {article['title']}: {article['content'][:200]}..." for article in symbol_articles[:10]])}
+                {articles_text}
 
                 Respond with a JSON object containing:
                 - sentiment_score: float between -1 and 1
-                - sentiment_label: "bullish", "bearish", or "neutral"
+                - sentiment_label: "bullish", "bearish", "neutral", or "warning"
                 - confidence: float between 0 and 1
                 - key_themes: list of strings
                 - sentiment_drivers: list of strings
+                - news_summary: string (2-3 sentences summarizing the key news points)
+                - article_count: number of articles analyzed
+                - articles: list of objects with title, url, sentiment_contribution (positive/negative/neutral)
                 """
 
                 response = await self.llm.ainvoke([HumanMessage(content=sentiment_prompt)])
@@ -250,13 +253,18 @@ class FinancialAnalysisWorkflow:
                     sentiment_data = json.loads(response.content)
                     sentiment_analysis[symbol] = sentiment_data
                 except:
-                    # Fallback simple sentiment
+                    # Fallback simple sentiment with news data
+                    article_summaries = [{"title": getattr(article, 'title', ''), "url": getattr(article, 'url', ''), "sentiment_contribution": "neutral"} for article in symbol_articles[:5]]
+
                     sentiment_analysis[symbol] = {
                         "sentiment_score": 0.0,
                         "sentiment_label": "neutral",
                         "confidence": 0.5,
                         "key_themes": [],
-                        "sentiment_drivers": []
+                        "sentiment_drivers": [],
+                        "news_summary": f"Analysis of {len(symbol_articles)} news articles about {symbol}. Detailed AI analysis temporarily unavailable.",
+                        "article_count": len(symbol_articles),
+                        "articles": article_summaries
                     }
 
             state["sentiment_analysis"] = sentiment_analysis
@@ -290,10 +298,10 @@ class FinancialAnalysisWorkflow:
                     generate a trading recommendation.
 
                     Financial Data:
-                    {json.dumps(financial_data, indent=2, default=str)}
+                    {str(financial_data)}
 
                     Sentiment Analysis:
-                    {json.dumps(sentiment_data, indent=2)}
+                    {str(sentiment_data)}
 
                     Provide a recommendation with the following JSON structure:
                     {{
@@ -366,7 +374,7 @@ class FinancialAnalysisWorkflow:
             and portfolio constraints:
 
             Individual Recommendations:
-            {json.dumps(recommendations, indent=2, default=str)}
+            {str(recommendations)}
 
             Portfolio Size: ${portfolio_size:,.2f}
             Risk Tolerance: {risk_tolerance}
@@ -398,11 +406,20 @@ class FinancialAnalysisWorkflow:
             except Exception as e:
                 logger.warning(f"Failed to parse portfolio recommendation: {str(e)}")
                 # Create basic portfolio
+                # Map risk tolerance to valid enum values
+                risk_level_mapping = {
+                    "conservative": "low",
+                    "moderate": "medium",
+                    "aggressive": "high",
+                    "very_aggressive": "very_high"
+                }
+                mapped_risk_level = risk_level_mapping.get(risk_tolerance, "medium")
+
                 state["portfolio_recommendation"] = {
                     "recommendations": recommendations,
                     "total_confidence": 0.7,
                     "diversification_score": 0.6,
-                    "overall_risk_level": risk_tolerance,
+                    "overall_risk_level": mapped_risk_level,
                     "portfolio_size": portfolio_size
                 }
 

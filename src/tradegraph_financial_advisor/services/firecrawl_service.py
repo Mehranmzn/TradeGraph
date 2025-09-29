@@ -1,8 +1,10 @@
 import asyncio
 from typing import Any, Dict, List, Optional, Union
-from datetime import datetime
+from datetime import datetime, timedelta
 import aiohttp
 from loguru import logger
+import re
+from dateutil import parser as date_parser
 
 from ..config.settings import settings
 from ..models.financial_data import NewsArticle
@@ -120,7 +122,12 @@ class FirecrawlService:
 
             # Scrape the actual filing documents
             filings = []
-            for url in filing_urls[:3]:  # Limit to 3 most recent filings
+            if isinstance(filing_urls, list) and len(filing_urls) > 0:
+                urls_to_process = filing_urls[:3]  # Limit to 3 most recent filings
+            else:
+                urls_to_process = []
+
+            for url in urls_to_process:
                 try:
                     filing_data = await self.scrape_url(url, {
                         "onlyMainContent": True,
@@ -129,9 +136,15 @@ class FirecrawlService:
                     })
 
                     if "data" in filing_data:
+                        markdown_content = filing_data["data"].get("markdown", "")
+                        if isinstance(markdown_content, str):
+                            content = markdown_content[:10000]
+                        else:
+                            content = str(markdown_content)[:10000]
+
                         filings.append({
                             "url": url,
-                            "content": filing_data["data"]["markdown"][:10000],  # Limit content
+                            "content": content,
                             "scraped_at": datetime.now().isoformat(),
                             "report_type": report_type
                         })
@@ -146,24 +159,108 @@ class FirecrawlService:
             return []
 
     def _extract_filing_urls(self, html_content: str) -> List[str]:
-        urls = []
+        """Extract SEC filing URLs, prioritizing the most recent filings."""
+        filing_data = []
+
         try:
             from bs4 import BeautifulSoup
 
             soup = BeautifulSoup(html_content, 'html.parser')
 
-            # Find filing document links in SEC EDGAR format
-            for link in soup.find_all('a', href=True):
-                href = link['href']
-                if '/Archives/edgar/data/' in href and href.endswith('.htm'):
-                    if not href.startswith('http'):
-                        href = f"https://www.sec.gov{href}"
-                    urls.append(href)
+            # Look for filing tables (SEC EDGAR format)
+            tables = soup.find_all('table')
+
+            for table in tables:
+                rows = table.find_all('tr')[1:]  # Skip header row
+
+                for row in rows:
+                    cells = row.find_all(['td', 'th'])
+                    if len(cells) >= 4:  # Typical SEC filing table has multiple columns
+                        try:
+                            # Extract filing date (usually in first few columns)
+                            filing_date_text = None
+                            for i in range(min(3, len(cells))):
+                                cell_text = cells[i].get_text(strip=True)
+                                if re.match(r'\d{4}-\d{2}-\d{2}', cell_text):
+                                    filing_date_text = cell_text
+                                    break
+
+                            # Extract filing URL
+                            link = row.find('a', href=True)
+                            if link and '/Archives/edgar/data/' in link.get('href', ''):
+                                href = link['href']
+                                if not href.startswith('http'):
+                                    href = f"https://www.sec.gov{href}"
+
+                                # Parse filing date
+                                filing_date = datetime.now()
+                                if filing_date_text:
+                                    try:
+                                        filing_date = date_parser.parse(filing_date_text)
+                                    except:
+                                        pass
+
+                                filing_data.append({
+                                    'url': href,
+                                    'date': filing_date,
+                                    'date_text': filing_date_text
+                                })
+
+                        except Exception as e:
+                            continue
+
+            # If table parsing failed, fall back to simple link extraction
+            if not filing_data:
+                links = soup.find_all('a', href=True)
+                for link in links:
+                    href = link['href']
+                    if '/Archives/edgar/data/' in href and href.endswith('.htm'):
+                        if not href.startswith('http'):
+                            href = f"https://www.sec.gov{href}"
+
+                        # Try to extract date from link text or nearby elements
+                        link_text = link.get_text(strip=True)
+                        parent_text = link.parent.get_text(strip=True) if link.parent else ""
+
+                        filing_date = datetime.now()
+                        for text in [link_text, parent_text]:
+                            date_match = re.search(r'(\d{4}-\d{2}-\d{2})', text)
+                            if date_match:
+                                try:
+                                    filing_date = date_parser.parse(date_match.group(1))
+                                    break
+                                except:
+                                    pass
+
+                        filing_data.append({
+                            'url': href,
+                            'date': filing_date,
+                            'date_text': None
+                        })
+
+            # Sort by date (newest first) and remove duplicates
+            filing_data.sort(key=lambda x: x['date'], reverse=True)
+
+            # Remove duplicate URLs, keeping the newest
+            seen_urls = set()
+            unique_filings = []
+
+            for filing in filing_data:
+                url = filing['url']
+                if url not in seen_urls:
+                    seen_urls.add(url)
+                    unique_filings.append(filing)
+
+            # Only keep filings from the last 2 years for relevance
+            cutoff_date = datetime.now() - timedelta(days=730)
+            recent_filings = [f for f in unique_filings if f['date'] >= cutoff_date]
+
+            # Return only URLs of recent, unique filings (up to 5 most recent)
+            return [filing['url'] for filing in recent_filings[:5]]
 
         except Exception as e:
             logger.warning(f"Error extracting filing URLs: {str(e)}")
-
-        return urls
+            return []
 
     async def scrape_news_websites(
         self,
@@ -245,7 +342,10 @@ class FirecrawlService:
             # Remove duplicates and limit results
             unique_articles = list({str(elem): elem for elem in found_articles}.values())
 
-            for elem in unique_articles[:max_articles]:
+            # Sort by extractable publication dates first
+            article_data = []
+
+            for elem in unique_articles:
                 try:
                     # Extract title
                     title_elem = (
@@ -273,6 +373,9 @@ class FirecrawlService:
                         elif source == "bloomberg":
                             url = f"https://www.bloomberg.com{url}"
 
+                    # Extract publication date
+                    published_at = self._extract_publication_date(elem, source)
+
                     # Extract content preview
                     content_elem = elem.find(['p', 'div'])
                     content = content_elem.get_text(strip=True)[:500] if content_elem else ""
@@ -284,24 +387,153 @@ class FirecrawlService:
                     )
 
                     if title and (is_relevant or not symbols):
-                        article = NewsArticle(
-                            title=title,
-                            url=url,
-                            content=content,
-                            source=source,
-                            published_at=datetime.now(),
-                            symbols=symbols
-                        )
-                        articles.append(article)
+                        article_data.append({
+                            'title': title,
+                            'url': url,
+                            'content': content,
+                            'published_at': published_at,
+                            'source': source,
+                            'symbols': symbols
+                        })
 
                 except Exception as e:
                     logger.warning(f"Error parsing article element: {str(e)}")
                     continue
 
+            # Sort by publication date (newest first) and filter recent articles
+            cutoff_date = datetime.now() - timedelta(days=90)  # Extend to 90 days for better coverage
+            article_data.sort(key=lambda x: x['published_at'], reverse=True)
+
+            logger.info(f"Found {len(article_data)} articles before filtering for {source}")
+
+            # Remove duplicates based on title similarity and keep newest
+            filtered_articles = self._remove_duplicate_articles(article_data)
+
+            logger.info(f"After duplicate removal: {len(filtered_articles)} articles for {source}")
+
+            # Take recent articles (be more lenient with date filtering)
+            added_count = 0
+            for article_info in filtered_articles[:max_articles * 2]:  # Check more candidates
+                try:
+                    # Be more lenient with date filtering - include articles even if slightly older
+                    if article_info['published_at'] >= cutoff_date or added_count < 3:
+                        article = NewsArticle(
+                            title=article_info['title'],
+                            url=article_info['url'],
+                            content=article_info['content'],
+                            source=article_info['source'],
+                            published_at=article_info['published_at'],
+                            symbols=article_info['symbols']
+                        )
+                        articles.append(article)
+                        added_count += 1
+
+                    if added_count >= max_articles:
+                        break
+
+                except Exception as e:
+                    logger.warning(f"Error creating article object: {str(e)}")
+                    continue
+
+            logger.info(f"Final article count for {source}: {len(articles)}")
+
         except Exception as e:
             logger.error(f"Error extracting articles from {source}: {str(e)}")
 
         return articles
+
+    def _extract_publication_date(self, elem, source: str) -> datetime:
+        """Extract publication date from article element."""
+        try:
+            # Try various date element selectors
+            date_selectors = [
+                'time',
+                '.timestamp', '.date', '.published-date',
+                '[datetime]', '[data-timestamp]',
+                '.article-date', '.post-date'
+            ]
+
+            date_text = None
+
+            for selector in date_selectors:
+                date_elem = elem.select_one(selector)
+                if date_elem:
+                    # Try datetime attribute first
+                    if date_elem.has_attr('datetime'):
+                        date_text = date_elem['datetime']
+                    elif date_elem.has_attr('data-timestamp'):
+                        date_text = date_elem['data-timestamp']
+                    else:
+                        date_text = date_elem.get_text(strip=True)
+                    break
+
+            # If no dedicated date element, look for date patterns in text
+            if not date_text:
+                text_content = elem.get_text()
+                # Common date patterns
+                date_patterns = [
+                    r'(\d{1,2}/\d{1,2}/\d{4})',  # MM/DD/YYYY
+                    r'(\d{4}-\d{1,2}-\d{1,2})',  # YYYY-MM-DD
+                    r'(\w+ \d{1,2}, \d{4})',     # Month DD, YYYY
+                    r'(\d{1,2} \w+ \d{4})',      # DD Month YYYY
+                    r'(\d+ hours? ago)',          # X hours ago
+                    r'(\d+ days? ago)',           # X days ago
+                ]
+
+                for pattern in date_patterns:
+                    match = re.search(pattern, text_content, re.IGNORECASE)
+                    if match:
+                        date_text = match.group(1)
+                        break
+
+            if date_text:
+                # Handle relative dates
+                if 'ago' in date_text.lower():
+                    if 'hour' in date_text:
+                        hours = int(re.search(r'(\d+)', date_text).group(1))
+                        return datetime.now() - timedelta(hours=hours)
+                    elif 'day' in date_text:
+                        days = int(re.search(r'(\d+)', date_text).group(1))
+                        return datetime.now() - timedelta(days=days)
+
+                # Try to parse the date
+                return date_parser.parse(date_text, fuzzy=True)
+
+        except Exception as e:
+            logger.debug(f"Could not extract date from {source} article: {str(e)}")
+
+        # Fallback: return current time minus a small random offset to maintain some ordering
+        import random
+        return datetime.now() - timedelta(minutes=random.randint(0, 60))
+
+    def _remove_duplicate_articles(self, article_data: List[Dict]) -> List[Dict]:
+        """Remove duplicate articles based on title similarity, keeping the newest."""
+        from difflib import SequenceMatcher
+
+        def title_similarity(title1: str, title2: str) -> float:
+            """Calculate similarity between two titles."""
+            return SequenceMatcher(None, title1.lower(), title2.lower()).ratio()
+
+        unique_articles = []
+        similarity_threshold = 0.85  # 85% similarity threshold
+
+        for article in article_data:
+            is_duplicate = False
+
+            for existing in unique_articles:
+                if title_similarity(article['title'], existing['title']) > similarity_threshold:
+                    # Found a duplicate - keep the newer one
+                    if article['published_at'] > existing['published_at']:
+                        unique_articles.remove(existing)
+                        break
+                    else:
+                        is_duplicate = True
+                        break
+
+            if not is_duplicate:
+                unique_articles.append(article)
+
+        return unique_articles
 
     async def health_check(self) -> bool:
         try:
