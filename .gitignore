@@ -74,3 +74,4 @@ mypy-report/
 *.rej
 .claude/
 
+results/

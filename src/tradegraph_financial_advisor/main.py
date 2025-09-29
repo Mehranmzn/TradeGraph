@@ -10,6 +10,7 @@ from .agents.recommendation_engine import TradingRecommendationEngine
 from .agents.report_analysis_agent import ReportAnalysisAgent
 from .config.settings import settings
 from .models.recommendations import PortfolioRecommendation
+from .utils.helpers import save_analysis_results
 
 
 class FinancialAdvisor:
@@ -322,6 +323,22 @@ async def main():
             # Generate alerts only
             alerts = await advisor.get_stock_alerts(args.symbols)
 
+            # Save alerts to JSON file with timestamp
+            try:
+                # Create results structure for alerts
+                alerts_results = {
+                    "analysis_summary": {
+                        "symbols_analyzed": args.symbols,
+                        "analysis_type": "alerts_only",
+                        "analysis_timestamp": datetime.now().isoformat()
+                    },
+                    "alerts": alerts
+                }
+                filepath = save_analysis_results(alerts_results)
+                logger.info(f"Alerts results automatically saved to: {filepath}")
+            except Exception as e:
+                logger.warning(f"Failed to save alerts file: {str(e)}")
+
             if args.output_format == "json":
                 import json
                 print(json.dumps(alerts, indent=2))
@@ -351,6 +368,14 @@ async def main():
                     include_reports=False
                 )
 
+            # Always save results to JSON file with timestamp
+            try:
+                filepath = save_analysis_results(results)
+                logger.info(f"Analysis results automatically saved to: {filepath}")
+            except Exception as e:
+                logger.warning(f"Failed to save results file: {str(e)}")
+
+            # Display results based on output format
             if args.output_format == "json":
                 import json
                 print(json.dumps(results, indent=2, default=str))
