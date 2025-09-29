@@ -39,6 +39,7 @@ dependencies = [
     "yfinance>=0.2.0",
     "alpha-vantage>=2.3.0",
     "python-dateutil>=2.8.0",
+    "fastapi>=0.118.0",
 ]
 
 [project.optional-dependencies]
