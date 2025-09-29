@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/logo.png" alt="TradeGraph Logo" width="200"/>
+</p>
+
 # TradeGraph Financial Advisor
 
 A sophisticated multi-agent financial analysis system that uses **LangGraph**, **Firecrawl**, and **MCP (Model Context Protocol)** to provide intelligent trading recommendations based on real-time financial news and comprehensive company analysis.
