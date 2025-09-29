@@ -268,7 +268,7 @@ async def main():
     parser.add_argument(
         "symbols",
         nargs="+",
-        help="Stock symbols to analyze (e.g., AAPL MSFT GOOGL)"
+        help="Stock or cryptocurrency symbols to analyze (e.g., AAPL MSFT BTC ETH SOL)"
     )
     parser.add_argument(
         "--portfolio-size",

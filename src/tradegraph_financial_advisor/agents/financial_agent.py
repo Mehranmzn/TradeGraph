@@ -7,18 +7,20 @@ import pandas as pd
 from loguru import logger
 
 from .base_agent import BaseAgent
-from ..models.financial_data import CompanyFinancials, MarketData, TechnicalIndicators
+from ..models.financial_data import CompanyFinancials, MarketData, TechnicalIndicators, FinancialData
 from ..config.settings import settings
+from ..services.crypto_service import CryptoDataService
 
 
 class FinancialAnalysisAgent(BaseAgent):
     def __init__(self, **kwargs):
         super().__init__(
             name="FinancialAnalysisAgent",
-            description="Analyzes company financials and technical indicators",
+            description="Analyzes company financials and technical indicators for stocks and cryptocurrencies",
             **kwargs
         )
         self.session: Optional[aiohttp.ClientSession] = None
+        self.crypto_service = CryptoDataService()
 
     async def start(self) -> None:
         await super().start()
@@ -44,18 +46,29 @@ class FinancialAnalysisAgent(BaseAgent):
         for symbol in symbols:
             try:
                 symbol_data = {}
+                is_crypto = self.crypto_service.is_crypto_symbol(symbol)
+                symbol_data["asset_type"] = "crypto" if is_crypto else "stock"
 
                 if include_market_data:
-                    market_data = await self._get_market_data(symbol)
-                    symbol_data["market_data"] = market_data.dict() if market_data else None
+                    if is_crypto:
+                        market_data = await self.crypto_service.get_crypto_data(symbol)
+                        symbol_data["market_data"] = market_data.dict() if market_data else None
+                    else:
+                        market_data = await self._get_market_data(symbol)
+                        symbol_data["market_data"] = market_data.dict() if market_data else None
 
-                if include_financials:
+                if include_financials and not is_crypto:
+                    # Financials only apply to stocks, not crypto
                     financials = await self._get_company_financials(symbol)
                     symbol_data["financials"] = financials.dict() if financials else None
 
                 if include_technical:
-                    technical = await self._get_technical_indicators(symbol)
-                    symbol_data["technical_indicators"] = technical.dict() if technical else None
+                    if is_crypto:
+                        technical = await self.crypto_service.get_crypto_technical_indicators(symbol)
+                        symbol_data["technical_indicators"] = technical.dict() if technical else None
+                    else:
+                        technical = await self._get_technical_indicators(symbol)
+                        symbol_data["technical_indicators"] = technical.dict() if technical else None
 
                 results[symbol] = symbol_data
 

@@ -5,9 +5,11 @@ A sophisticated multi-agent financial analysis system that uses **LangGraph**, *
 ## 🚀 Features
 
 - **Multi-Agent Architecture**: Coordinated agents for news analysis, financial data processing, and report analysis
+- **Multi-Asset Support**: Supports both traditional stocks and cryptocurrencies (BTC, ETH, SOL, etc.)
 - **Real-Time News Analysis**: Scrapes and analyzes financial news from multiple sources using Firecrawl
 - **SEC Filing Analysis**: Deep analysis of 10-K and 10-Q reports using AI
-- **Technical Analysis**: Comprehensive technical indicators and chart pattern recognition
+- **Technical Analysis**: Comprehensive technical indicators and chart pattern recognition for stocks and crypto
+- **Cryptocurrency Integration**: Native support for crypto markets via CoinGecko and exchange APIs
 - **Sentiment Analysis**: AI-powered sentiment analysis of news and social media
 - **Portfolio Optimization**: Intelligent portfolio construction with risk management
 - **Trading Recommendations**: Buy/Sell/Hold recommendations with confidence scores
@@ -84,24 +86,30 @@ DEFAULT_PORTFOLIO_SIZE=100000
 ### Command Line Usage
 
 ```bash
-# Basic analysis
+# Basic analysis (stocks)
 tradegraph AAPL MSFT GOOGL
 
+# Cryptocurrency analysis
+tradegraph BTC ETH SOL AVAX
+
+# Mixed portfolio (stocks + crypto)
+tradegraph AAPL BTC MSFT ETH --analysis-type comprehensive
+
 # Comprehensive analysis with custom parameters
-tradegraph AAPL MSFT GOOGL \
+tradegraph AAPL MSFT BTC ETH \
   --portfolio-size 250000 \
   --risk-tolerance aggressive \
   --time-horizon long_term \
   --analysis-type comprehensive
 
-# Quick analysis
-tradegraph TSLA NVDA --analysis-type quick
+# Quick crypto analysis
+tradegraph BTC ETH --analysis-type quick
 
 # Generate alerts only
-tradegraph AAPL --alerts-only
+tradegraph AAPL BTC --alerts-only
 
 # JSON output
-tradegraph AAPL MSFT --output-format json > analysis.json
+tradegraph AAPL MSFT BTC ETH --output-format json > analysis.json
 ```
 
 ### Python API Usage

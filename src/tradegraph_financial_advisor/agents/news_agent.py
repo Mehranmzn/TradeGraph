@@ -8,16 +8,18 @@ from loguru import logger
 from .base_agent import BaseAgent
 from ..models.financial_data import NewsArticle, SentimentType
 from ..config.settings import settings
+from ..services.crypto_service import CryptoDataService
 
 
 class NewsReaderAgent(BaseAgent):
     def __init__(self, **kwargs):
         super().__init__(
             name="NewsReaderAgent",
-            description="Reads and analyzes financial news from multiple sources",
+            description="Reads and analyzes financial news from multiple sources including cryptocurrency news",
             **kwargs
         )
         self.session: Optional[aiohttp.ClientSession] = None
+        self.crypto_service = CryptoDataService()
 
     async def start(self) -> None:
         await super().start()
@@ -39,14 +41,39 @@ class NewsReaderAgent(BaseAgent):
 
         all_articles = []
 
-        for source in settings.news_sources:
+        # Separate crypto and stock symbols
+        crypto_symbols = [s for s in symbols if self.crypto_service.is_crypto_symbol(s)]
+        stock_symbols = [s for s in symbols if not self.crypto_service.is_crypto_symbol(s)]
+
+        # Fetch crypto news
+        for symbol in crypto_symbols:
             try:
-                articles = await self._fetch_news_from_source(
-                    source, symbols, timeframe_hours, max_articles // len(settings.news_sources)
-                )
-                all_articles.extend(articles)
+                crypto_news = await self.crypto_service.get_crypto_news(symbol, limit=max_articles // len(symbols) if symbols else 10)
+                # Convert crypto news to NewsArticle format
+                for news_item in crypto_news:
+                    article = NewsArticle(
+                        title=news_item['title'],
+                        content=news_item['content'],
+                        source=news_item['source'],
+                        published_at=datetime.fromisoformat(news_item['timestamp'].replace('Z', '+00:00')),
+                        url="",
+                        sentiment=SentimentType.NEUTRAL,
+                        relevance_score=0.8
+                    )
+                    all_articles.append(article)
             except Exception as e:
-                logger.error(f"Failed to fetch news from {source}: {str(e)}")
+                logger.error(f"Failed to fetch crypto news for {symbol}: {str(e)}")
+
+        # Fetch stock news from traditional sources
+        if stock_symbols:
+            for source in settings.news_sources:
+                try:
+                    articles = await self._fetch_news_from_source(
+                        source, stock_symbols, timeframe_hours, max_articles // len(settings.news_sources)
+                    )
+                    all_articles.extend(articles)
+                except Exception as e:
+                    logger.error(f"Failed to fetch news from {source}: {str(e)}")
 
         analyzed_articles = await self._analyze_articles(all_articles, symbols)
 
