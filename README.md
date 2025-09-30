@@ -44,7 +44,7 @@ pip install tradegraph-financial-advisor
 
 ```bash
 # Clone and install in development mode
-git clone https://github.com/tradegraph/financial-advisor.git
+git clone https://github.com/Mehranmzn/TradeGraph.git
 cd financial-advisor
 
 # Create virtual environment
