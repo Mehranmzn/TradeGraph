@@ -30,7 +30,7 @@ A sophisticated multi-agent financial analysis system that uses **LangGraph**, *
 
 ```bash
 # Clone the repository
-git clone https://github.com/tradegraph/financial-advisor.git
+git clone https://github.com/Mehranmzn/TradeGraph.git
 cd financial-advisor
 
 # Install the package
